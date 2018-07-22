@@ -1,47 +1,76 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Game
     () where
 
 --------------------------------------------------------------------------------
-import           Data.Text           (Text)
+import           Data.Text          (Text)
 import qualified Data.Text          as T
-import           Data.IntMap         (IntMap)
-import qualified Data.IntMap.Strict as IntMap
+import           Data.Map           (Map)
+import qualified Data.Map.Strict as Map
+import           Control.Lens       (makeLenses)
 ----------------------------------------------------------------------------------
 
-newtype XY =  MkXY (Int, Int) deriving Show
 
-newtype Angle = MkAngle Int deriving Show
-newtype Move = MkMove Angle deriving Show
-newtype Rotate = MkRotate Angle deriving Show
+----------------------------------------------------------------------------------
+-- Objects
+----------------------------------------------------------------------------------
 
-data Player = MkPlayer {
-    playerCenter :: !XY
-  , playerRotation :: Angle
+type Angle = Double
+
+data Point = MkPoint {
+    _x :: !Double
+  , _y :: !Double
+} deriving (Show)
+
+data Shape = MkSquare Double
+           | MkRecentlage Double Double
+           | MkCircle Double deriving (Show)
+
+data Object2d = MkObject2d {
+    _objectCenter :: Point
+  , _objectShape :: Shape
+  , _objectRotation :: Angle
+} deriving (Show)
+
+data Avatar = MkAvatar {
+    _avatarName :: Text
+  , _avatarObject :: !Object2d
 } deriving (Show)
 
 data Obstacle = MkObstacle {
-    obstacleCenter :: !XY
-  , obstacleSize :: !XY
-  , obstacleRotation :: Angle
+    _obstacleObject :: !Object2d
 } deriving (Show)
 
-type Players = IntMap Player
+type Avatars = Map Text Avatar
 type Obstacles = [Obstacle]
 
 data GameWorld = MkGameWorld {
-    players :: IntMap Player
-  , obstacles :: [Obstacle]
+    _avatars :: Avatars
+  , _obstacles :: Obstacles
 } deriving (Show)
 
+makeLenses ''Point
+makeLenses ''Object2d
+makeLenses ''Avatar
+makeLenses ''Obstacle
 
 basicObstacles :: [Obstacle]
-basicObstacles = [MkObstacle (XY (100, 100)) (XY (100, 100)) (Angle 90)]
+basicObstacles = [MkObstacle $ MkObject2d (MkPoint 100 100) (MkSquare 5) 90]
 
-newPlayerPosition = XY (0,0)
- 
-startingPlayer :: Players
-startingPlayer playerId = IntMap.singleton playerId (MkPlayer newPlayerPosition (Angle 0))
+newAvatarPosition = MkPoint 0 0
+avatarShape = MkCircle 1
 
-gameWorld = MkGameWorld 
+startingAvatar :: Text -> Avatars
+startingAvatar avatarName = Map.singleton avatarName (MkAvatar avatarName $ MkObject2d newAvatarPosition avatarShape 0)
+
+gameWorld avatarName = MkGameWorld (startingAvatar avatarName) basicObstacles
+
+
+----------------------------------------------------------------------------------
+-- Actions
+----------------------------------------------------------------------------------
+
+
+
