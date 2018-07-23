@@ -32,6 +32,7 @@ data Object2d = MkObject2d {
     _objectCenter :: Point
   , _objectShape :: Shape
   , _objectRotation :: Angle
+  , _objectVelocity :: Point
 } deriving (Show)
 
 data Avatar = MkAvatar {
@@ -56,14 +57,16 @@ makeLenses ''Object2d
 makeLenses ''Avatar
 makeLenses ''Obstacle
 
-basicObstacles :: [Obstacle]
-basicObstacles = [MkObstacle $ MkObject2d (MkPoint 100 100) (MkSquare 5) 90]
+pointZero = MkPoint 0 0
 
-newAvatarPosition = MkPoint 0 0
+basicObstacles :: [Obstacle]
+basicObstacles = [MkObstacle $ MkObject2d pointZero (MkSquare 5) 90 pointZero]
+
+newAvatarPosition = pointZero
 avatarShape = MkCircle 1
 
 startingAvatar :: Text -> Avatars
-startingAvatar avatarName = Map.singleton avatarName (MkAvatar avatarName $ MkObject2d newAvatarPosition avatarShape 0)
+startingAvatar avatarName = Map.singleton avatarName (MkAvatar avatarName $ MkObject2d newAvatarPosition avatarShape 0 pointZero)
 
 gameWorld avatarName = MkGameWorld (startingAvatar avatarName) basicObstacles
 
