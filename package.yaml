@@ -6,6 +6,8 @@ author:              "Author name here"
 maintainer:          "example@example.com"
 copyright:           "2018 Author name here"
 
+ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+
 extra-source-files:
 - README.md
 - ChangeLog.md
@@ -32,6 +34,7 @@ library:
     - containers
     - aeson  
     - lens  
+    - freer-simple  
 
 executables:
   zone-exe:

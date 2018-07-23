@@ -12,12 +12,11 @@ import qualified Network.WebSockets  as WS
 
 
 data Player m = MkPlayer {
-    _playerName :: Text
-  , _playerGet  :: m Text
+    _playerGet  :: m Text
   , _playerSend :: Text -> m ()
 }
 
 makeLenses ''Player
 
-webscoketPlayer :: Text -> WS.Connection -> Player IO
-webscoketPlayer name conn = MkPlayer name (WS.receiveData conn) (WS.sendTextData conn)
+webscoketPlayer :: WS.Connection -> Player IO
+webscoketPlayer conn = MkPlayer (WS.receiveData conn) (WS.sendTextData conn)
