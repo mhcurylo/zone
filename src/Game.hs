@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeInType #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -17,6 +18,10 @@ import qualified Data.Text          as T
 import           Data.IntMap        (IntMap)
 import qualified Data.IntMap.Strict as Map
 import           Control.Lens       (makeLenses)
+import           Control.Monad.Freer
+import           Control.Monad.Freer.Error
+import           Control.Monad.Freer.State
+import           Control.Monad.Freer.Writer
 ----------------------------------------------------------------------------------
 
 
@@ -25,8 +30,6 @@ import           Control.Lens       (makeLenses)
 ----------------------------------------------------------------------------------
 
 type Angle = Double
-newtype AvatarId = MkAvatarId Int deriving Show
-newtype ObstacleId = MkObstacleId Int deriving Show
 
 data Point = MkPoint {
     _x :: !Double
@@ -37,6 +40,10 @@ data Shape = MkSquare Double
            | MkRecentlage Double Double
            | MkCircle Double deriving (Show)
 
+data family ObjectId a
+data instance ObjectId Avatar = AvatarId Int deriving Show  
+data instance ObjectId Obstacle = ObstacleId Int deriving Show 
+
 data Object2d = MkObject2d {
     _objectCenter :: Point
   , _objectShape :: Shape
@@ -45,8 +52,7 @@ data Object2d = MkObject2d {
 } deriving (Show)
 
 data Avatar = MkAvatar {
-    _avatarId :: AvatarId
-  , _avatarObject :: !Object2d
+    _avatarObject :: !Object2d
 } deriving (Show)
 
 data Obstacle = MkObstacle {
@@ -55,6 +61,8 @@ data Obstacle = MkObstacle {
 
 type Avatars = IntMap Avatar
 type Obstacles = IntMap Obstacle
+
+
 
 data GameWorld = MkGameWorld {
     _avatars :: Avatars
@@ -74,8 +82,8 @@ basicObstacles = Map.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5
 newAvatarPosition = pointZero
 avatarShape = MkCircle 1
 
-startingAvatar :: AvatarId -> Avatars
-startingAvatar avatarId@(MkAvatarId n) = Map.singleton n (MkAvatar avatarId $ MkObject2d newAvatarPosition avatarShape 0 pointZero)
+startingAvatar :: ObjectId Avatar -> Avatars
+startingAvatar (AvatarId n) = Map.singleton n (MkAvatar $ MkObject2d newAvatarPosition avatarShape 0 pointZero)
 
 gameWorld avatarName = MkGameWorld (startingAvatar avatarName) basicObstacles
 
@@ -84,15 +92,23 @@ gameWorld avatarName = MkGameWorld (startingAvatar avatarName) basicObstacles
 -- Actions
 ----------------------------------------------------------------------------------
 
-data ObjectType = AvatarType | ObstacleType
+data Action m where
+  Move   :: ObjectId a -> Point -> Action ()
+  Rotate :: ObjectId a -> Angle -> Action ()
 
-type family ObjectId a where
-  ObjectId AvatarType = AvatarId
-  ObjectId ObstacleType = ObstacleId
+move :: Member Action effs => ObjectId a -> Point -> Eff effs ()
+move objId = send . Move objId 
 
-data Action s m where
-  Move   :: ObjectId (a :: ObjectType) -> Point -> Action s ()
-  Rotate :: ObjectId (a :: ObjectType) -> Angle -> Action s ()
+rotate :: Member Action effs => ObjectId a -> Angle -> Eff effs ()
+rotate objId = send . Rotate objId
 
-a :: Action GameWorld ()
-a = (Move $ MkAvatarId 0) $ pointZero
+interpretAction :: Action v -> Eff '[State GameWorld] v
+interpretAction (Move a p) = pure ()
+interpretAction (Rotate a p) = pure ()
+
+sequenceActions :: [Action ()] -> Eff '[State GameWorld] [()]
+sequenceActions = mapM interpretAction 
+
+runGameActions :: [Action ()] -> GameWorld -> GameWorld
+runGameActions actions gameWorld = snd . run $ (runState gameWorld $ sequenceActions actions)
+
