@@ -1,17 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeInType #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE LambdaCase #-}
-
-module Game
-    () where
+module Game where
 
 --------------------------------------------------------------------------------
 import           Data.Text          (Text)
@@ -19,7 +7,7 @@ import qualified Data.Text          as T
 import           Data.IntMap        (IntMap)
 import qualified Data.IntMap.Strict as Map
 import           Control.Arrow      (first)
-import           Control.Lens       (makeLenses)
+import           Control.Lens       
 import           Control.Monad.Freer
 import           Control.Monad.Freer.Error
 import           Control.Monad.Freer.State
@@ -31,7 +19,9 @@ import           Control.Monad.Freer.Writer
 -- Objects
 ----------------------------------------------------------------------------------
 
-type Angle = Double
+newtype Angle = MkAngle { 
+  _a :: Double
+} deriving (Show, Num)
 
 data Point = MkPoint {
     _x :: !Double
@@ -42,9 +32,9 @@ data Shape = MkSquare Double
            | MkRecentlage Double Double
            | MkCircle Double deriving (Show)
 
-data family ObjectId a
-data instance ObjectId Avatar = AvatarId Int deriving Show  
-data instance ObjectId Obstacle = ObstacleId Int deriving Show 
+data ObjectId a where
+  AvatarId :: Int -> ObjectId Avatar
+  ObstacleId :: Int -> ObjectId Obstacle
 
 -- Object for physic implementation
 
@@ -73,14 +63,23 @@ type Avatars = IntMap Avatar
 type Obstacles = IntMap Obstacle
 
 data GameWorld = MkGameWorld {
-    _avatars :: Avatars
-  , _obstacles :: Obstacles
+    _gameAvatars :: Avatars
+  , _gameObstacles :: Obstacles
 } deriving (Show)
 
+makeLenses ''Angle
 makeLenses ''Point
 makeLenses ''Object2d
 makeLenses ''Avatar
 makeLenses ''Obstacle
+
+gameObject :: ObjectId a -> Lens' GameWorld (Maybe a)
+gameObject (AvatarId n) = lens _gameAvatars (\(MkGameWorld a o) na -> MkGameWorld na o) . at n
+gameObject (ObstacleId n) = lens _gameObstacles (\(MkGameWorld a o) no-> MkGameWorld a no) . at n
+
+object2d :: ObjectId a -> Traversal' GameWorld Object2d
+object2d a@(AvatarId n) = gameObject a . _Just . avatarObject
+object2d o@(ObstacleId n) = gameObject o . _Just . obstacleObject
 
 pointZero = MkPoint 0 0
 
@@ -90,10 +89,10 @@ basicObstacles = Map.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5
 newAvatarPosition = pointZero
 avatarShape = MkCircle 1
 
-startingAvatar :: ObjectId Avatar -> Avatars
-startingAvatar (AvatarId n) = Map.singleton n (MkAvatar $ MkObject2d newAvatarPosition avatarShape 0 pointZero)
+startingAvatar :: Avatars
+startingAvatar = Map.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape 0 pointZero)
 
-gameWorld avatarName = MkGameWorld (startingAvatar avatarName) basicObstacles
+gameWorld = MkGameWorld startingAvatar basicObstacles
 
 ----------------------------------------------------------------------------------
 -- Actions
@@ -110,6 +109,7 @@ data ActionReq where
 data ActionResp where
   MoveResp        :: ObjectId a -> Point -> ActionResp
   RotateResp      :: ObjectId a -> Angle -> ActionResp
+  GameWorldResp   :: GameWorld -> ActionResp
 
 -- Actual game actions 
 
@@ -148,7 +148,9 @@ interpretAvatarAction avaId (RotateReq r) = rotate avaId r
 interpretAction :: Eff '[Action, Writer [ActionResp], State GameWorld] v -> Eff '[Writer [ActionResp], State GameWorld] v
 interpretAction = interpret (\case
   AvatarAct avaId p -> interpretAction (interpretAvatarAction avaId p)
-  Accelerate objId p -> return ()
+  Accelerate objId acc -> case objId of
+      AvatarId id -> return ()
+      ObstacleId id -> return ()
   Move objId p -> return ()
   Rotate objId p -> return ()
   RunSimulation -> return ())
