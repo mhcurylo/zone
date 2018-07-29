@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Zone
 
 main :: IO ()
 main = someFunc

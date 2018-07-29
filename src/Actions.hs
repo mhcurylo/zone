@@ -1,11 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
-module Game where
+module Actions where
 
 --------------------------------------------------------------------------------
-import           Data.Text          (Text)
-import qualified Data.Text          as T
-import           Data.IntMap        (IntMap)
-import qualified Data.IntMap.Strict as Map
 import           Control.Arrow      (first)
 import           Control.Lens       
 import           Control.Monad.Freer
@@ -13,86 +8,8 @@ import           Control.Monad.Freer.Error
 import           Control.Monad.Freer.State
 import           Control.Monad.Freer.Writer
 ----------------------------------------------------------------------------------
-
-
+import           Objects
 ----------------------------------------------------------------------------------
--- Objects
-----------------------------------------------------------------------------------
-
-newtype Angle = MkAngle { 
-  _a :: Double
-} deriving (Show, Num)
-
-data Point = MkPoint {
-    _x :: !Double
-  , _y :: !Double
-} deriving (Show)
-
-data Shape = MkSquare Double
-           | MkRecentlage Double Double
-           | MkCircle Double deriving (Show)
-
-data ObjectId a where
-  AvatarId :: Int -> ObjectId Avatar
-  ObstacleId :: Int -> ObjectId Obstacle
-
--- Object for physic implementation
-
-data Object2d = MkObject2d {
-    _objectCenter :: Point
-  , _objectShape :: Shape
-  , _objectRotation :: Angle
-  , _objectVelocity :: Point
-} deriving (Show)
-
--- Avatars for Players (and NPCs?)
-
-data Avatar = MkAvatar {
-    _avatarObject :: !Object2d
-} deriving (Show)
-
--- Noninteractive game objects 
-
-data Obstacle = MkObstacle {
-    _obstacleObject :: !Object2d
-} deriving (Show)
-
--- Stroing it all
-
-type Avatars = IntMap Avatar
-type Obstacles = IntMap Obstacle
-
-data GameWorld = MkGameWorld {
-    _gameAvatars :: Avatars
-  , _gameObstacles :: Obstacles
-} deriving (Show)
-
-makeLenses ''Angle
-makeLenses ''Point
-makeLenses ''Object2d
-makeLenses ''Avatar
-makeLenses ''Obstacle
-
-gameObject :: ObjectId a -> Lens' GameWorld (Maybe a)
-gameObject (AvatarId n) = lens _gameAvatars (\(MkGameWorld a o) na -> MkGameWorld na o) . at n
-gameObject (ObstacleId n) = lens _gameObstacles (\(MkGameWorld a o) no-> MkGameWorld a no) . at n
-
-object2d :: ObjectId a -> Traversal' GameWorld Object2d
-object2d a@(AvatarId n) = gameObject a . _Just . avatarObject
-object2d o@(ObstacleId n) = gameObject o . _Just . obstacleObject
-
-pointZero = MkPoint 0 0
-
-basicObstacles :: Obstacles
-basicObstacles = Map.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5) 90 pointZero
-
-newAvatarPosition = pointZero
-avatarShape = MkCircle 1
-
-startingAvatar :: Avatars
-startingAvatar = Map.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape 0 pointZero)
-
-gameWorld = MkGameWorld startingAvatar basicObstacles
 
 ----------------------------------------------------------------------------------
 -- Actions
@@ -110,6 +27,11 @@ data ActionResp where
   MoveResp        :: ObjectId a -> Point -> ActionResp
   RotateResp      :: ObjectId a -> Angle -> ActionResp
   GameWorldResp   :: GameWorld -> ActionResp
+
+instance Show ActionResp where
+  show (MoveResp obj p) = "MoveResp " ++ " (" ++ show obj ++ ") " ++ show p
+  show (RotateResp obj p) = "RotateResp " ++ " (" ++  show obj ++ ") " ++ show p
+  show (GameWorldResp gw)  = "GameWorldResp " ++ show gw
 
 -- Actual game actions 
 
@@ -145,15 +67,31 @@ interpretAvatarAction avaId (RotateReq r) = rotate avaId r
 
 -- The actual implementation of game
 
+moveByVelocity :: Member (Writer [ActionResp]) effs => ObjectId a -> Object2d -> Eff effs Object2d
+moveByVelocity idx object = if vel == pointZero 
+  then pure object
+  else do
+    let npos = add pos vel
+    tell [MoveResp idx npos]
+    return $ objectCenter .~ npos  $ object
+  where
+  pos = object ^. objectCenter
+  vel = object ^. objectVelocity
+
 interpretAction :: Eff '[Action, Writer [ActionResp], State GameWorld] v -> Eff '[Writer [ActionResp], State GameWorld] v
 interpretAction = interpret (\case
   AvatarAct avaId p -> interpretAction (interpretAvatarAction avaId p)
-  Accelerate objId acc -> case objId of
-      AvatarId id -> return ()
-      ObstacleId id -> return ()
-  Move objId p -> return ()
-  Rotate objId p -> return ()
-  RunSimulation -> return ())
+  Accelerate objId acc -> modify $ (object2d objId . objectVelocity) .~ acc 
+  Move objId p -> do
+    modify $ (object2d objId . objectCenter) .~ p 
+    tell [MoveResp objId p]
+  Rotate objId a -> do
+    modify $ (object2d objId . objectRotation) .~ a 
+    tell [RotateResp objId a]
+  RunSimulation -> do
+    gw <- get
+    ngw <-  (imapMOf (avatars <. avatarObject) moveByVelocity gw >>= imapMOf (obstacles <. obstacleObject) moveByVelocity)
+    put ngw)
 
 -- Function to run a sequence of actions in game and recalculate the simulation
 
