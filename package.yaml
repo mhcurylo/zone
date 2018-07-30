@@ -21,6 +21,7 @@ default-extensions:
 - DeriveFoldable
 - DeriveFunctor
 - DeriveGeneric
+- DeriveAnyClass
 - DeriveLift
 - DeriveTraversable
 - DerivingStrategies
@@ -69,6 +70,7 @@ library:
     - mtl
     - network
     - containers
+    - unordered-containers
     - aeson  
     - lens  
     - freer-simple  

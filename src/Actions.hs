@@ -38,7 +38,6 @@ instance Show ActionResp where
 data Action m where
   AvatarAct       :: ObjectId Avatar -> ActionReq -> Action () 
   Accelerate      :: ObjectId a -> Point -> Action ()
-  Move            :: ObjectId a -> Point -> Action ()
   Rotate          :: ObjectId a -> Angle -> Action ()
   RunSimulation   :: Action ()
 
@@ -49,9 +48,6 @@ avatarAct avaId = send . AvatarAct avaId
 
 accelerate :: Member Action effs => ObjectId a -> Point -> Eff effs ()
 accelerate objId = send . Accelerate objId 
-
-move :: Member Action effs => ObjectId a -> Point -> Eff effs ()
-move objId = send . Move objId 
 
 rotate :: Member Action effs => ObjectId a -> Angle -> Eff effs ()
 rotate objId = send . Rotate objId
@@ -82,12 +78,9 @@ interpretAction :: Eff '[Action, Writer [ActionResp], State GameWorld] v -> Eff 
 interpretAction = interpret (\case
   AvatarAct avaId p -> interpretAction (interpretAvatarAction avaId p)
   Accelerate objId acc -> modify $ (object2d objId . objectVelocity) .~ acc 
-  Move objId p -> do
-    modify $ (object2d objId . objectCenter) .~ p 
-    tell [MoveResp objId p]
-  Rotate objId a -> do
-    modify $ (object2d objId . objectRotation) .~ a 
-    tell [RotateResp objId a]
+  Rotate objId ang -> do
+    modify $ (object2d objId . objectRotation) .~ ang
+    tell [RotateResp objId ang]
   RunSimulation -> do
     gw <- get
     ngw <-  (imapMOf (avatars <. avatarObject) moveByVelocity gw >>= imapMOf (obstacles <. obstacleObject) moveByVelocity)
