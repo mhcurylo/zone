@@ -28,7 +28,7 @@ add :: Point -> Point -> Point
 add (MkPoint x1 y1) (MkPoint x2 y2) = MkPoint (x1 + x2) (y1 + y2)
 
 data Shape = MkSquare Double
-           | MkRecentlage Double Double
+           | MkRectangle Double Double
            | MkCircle Double deriving (Show)
 
 data ObjectId a where
