@@ -2,17 +2,63 @@
 module Objects where
 
 --------------------------------------------------------------------------------
-import           Data.Text          (Text)
-import qualified Data.Text          as T
-import           Data.IntMap        (IntMap)
-import qualified Data.IntMap.Strict as Map
-import           Control.Arrow      (first, (***))
-import           Control.Lens      hiding ((.=)) 
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Control.Arrow       (first, (***))
+import           Control.Lens        hiding ((.=)) 
+import           Data.HashMap.Strict (HashMap) 
 import qualified Data.HashMap.Strict as HM
 import           Data.Aeson        
 import           GHC.Generics
 ----------------------------------------------------------------------------------
 
+----------------------------------------------------------------------------------
+-- ObjectIds
+----------------------------------------------------------------------------------
+
+data ObjectId a where
+  AvatarId :: Int -> ObjectId Avatar
+  ObstacleId :: Int -> ObjectId Obstacle
+
+instance ToJSON (ObjectId a) where
+  toJSON (AvatarId i) = object
+    [ "id" .= toJSON ("AvatarId" :: Text)
+    , "num" .= toJSON i
+    ]
+  toJSON (ObstacleId i) = object
+    [ "id" .= toJSON ("ObstacleId" :: Text)
+    , "num" .= toJSON i
+    ]
+
+data TransportId = TAvatarId (ObjectId Avatar) 
+                 | TObstacleId (ObjectId Obstacle)
+
+toTransportId :: ObjectId a -> TransportId
+toTransportId aid@(AvatarId _) = TAvatarId aid
+toTransportId oid@(ObstacleId _) = TObstacleId oid
+
+instance ToJSON TransportId where
+  toJSON (TAvatarId (AvatarId i)) = object
+    [ "id" .= toJSON ("AvatarId" :: Text)
+    , "num" .= toJSON i
+    ]
+  toJSON (TObstacleId (ObstacleId i)) = object
+    [ "id" .= toJSON ("ObstacleId" :: Text)
+    , "num" .= toJSON i
+    ]
+
+instance FromJSON TransportId where
+  parseJSON = withObject "ObjectId" $ \o -> do
+    id_ <- o .: "id"
+    num_ <- o .: "num"
+    case (id_ :: Text) of 
+      "AvatarId" -> return $ TAvatarId (AvatarId num_)
+      "ObstacleId" -> return $TObstacleId (ObstacleId num_)
+      _ -> fail "Not a TransportId!"
+
+instance Show (ObjectId a) where
+  show (AvatarId i) = "AvatarId " ++ show i
+  show (ObstacleId i) = "ObstacleId " ++ show i
 ----------------------------------------------------------------------------------
 -- Objects
 ----------------------------------------------------------------------------------
@@ -32,41 +78,6 @@ add (MkPoint x1 y1) (MkPoint x2 y2) = MkPoint (x1 + x2) (y1 + y2)
 data Shape = MkSquare Double
            | MkRecentlage Double Double
            | MkCircle Double deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
-
-data ObjectId a where
-  AvatarId :: Int -> ObjectId Avatar
-  ObstacleId :: Int -> ObjectId Obstacle
-
-instance ToJSON (ObjectId a) where
-  toJSON :: ObjectId a -> Value
-  toJSON (AvatarId i) = object
-    [ "id" .= toJSON ("AvatarId" :: Text)
-    , "num" .= toJSON i
-    ]
-  toJSON (ObstacleId i) = object
-    [ "id" .= toJSON ("ObstacleId" :: Text)
-    , "num" .= toJSON i
-    ]
-
-instance FromJSON (ObjectId Avatar) where
-  parseJSON = withObject "ObjectId" $ \o -> do
-    id_ <- o .: "id"
-    num_ <- o .: "num"
-    if id_ /= ("AvatarId" :: Text)
-      then fail "Not an AvatarId!"
-      else return $ AvatarId num_
-
-instance FromJSON (ObjectId Obstacle) where
-  parseJSON = withObject "ObjectId" $ \o -> do
-    id_ <- o .: "id"
-    num_ <- o .: "num"
-    if id_ /= ("ObstacleId" :: Text)
-      then fail "Not an ObstacleId!"
-      else return $ ObstacleId num_
-
-instance Show (ObjectId a) where
-  show (AvatarId i) = "AvatarId " ++ show i
-  show (ObstacleId i) = "ObstacleId " ++ show i
 
 -- Object for physic implementation
 
@@ -91,13 +102,13 @@ data Obstacle = MkObstacle {
 
 -- Storing it all
 
-type Avatars = IntMap Avatar
-type Obstacles = IntMap Obstacle
+type Avatars = HashMap Int Avatar
+type Obstacles = HashMap Int Obstacle
 
 data GameWorld = MkGameWorld {
     _gameAvatars :: Avatars
   , _gameObstacles :: Obstacles
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
 
 --instance FromJSON GameWorld where
 --  parseJSON o = do
@@ -133,12 +144,12 @@ obstacles = gameObstacles .> reindexed ObstacleId itraversed
 pointZero = MkPoint 0 0
 
 basicObstacles :: Obstacles
-basicObstacles = Map.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5) (MkAngle 90) pointZero
+basicObstacles = HM.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5) (MkAngle 90) pointZero
 
 newAvatarPosition = pointZero
 avatarShape = MkCircle 1
 
 startingAvatar :: Avatars
-startingAvatar = Map.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape (MkAngle 0) pointZero)
+startingAvatar = HM.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape (MkAngle 0) pointZero)
 
 gameWorld = MkGameWorld startingAvatar basicObstacles

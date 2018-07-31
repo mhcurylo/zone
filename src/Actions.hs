@@ -9,31 +9,14 @@ import           Control.Monad.Freer.State
 import           Control.Monad.Freer.Writer
 ----------------------------------------------------------------------------------
 import           Objects
+import           ClientActions
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------
 -- Actions
 ----------------------------------------------------------------------------------
 
--- Actions accepted from the Player / AI
-
-data ActionReq where
-  AccelerateReq   :: Point -> ActionReq
-  RotateReq       :: Angle -> ActionReq
-
--- Responses to the Player 
-
-data ActionResp where
-  MoveResp        :: ObjectId a -> Point -> ActionResp
-  RotateResp      :: ObjectId a -> Angle -> ActionResp
-  GameWorldResp   :: GameWorld -> ActionResp
-
-instance Show ActionResp where
-  show (MoveResp obj p) = "MoveResp " ++ " (" ++ show obj ++ ") " ++ show p
-  show (RotateResp obj p) = "RotateResp " ++ " (" ++  show obj ++ ") " ++ show p
-  show (GameWorldResp gw)  = "GameWorldResp " ++ show gw
-
--- Actual game actions 
+-- Game actions 
 
 data Action m where
   AvatarAct       :: ObjectId Avatar -> ActionReq -> Action () 
@@ -68,7 +51,7 @@ moveByVelocity idx object = if vel == pointZero
   then pure object
   else do
     let npos = add pos vel
-    tell [MoveResp idx npos]
+    tell $ [MoveResp (toTransportId idx) npos]
     return $ objectCenter .~ npos  $ object
   where
   pos = object ^. objectCenter
@@ -80,7 +63,7 @@ interpretAction = interpret (\case
   Accelerate objId acc -> modify $ (object2d objId . objectVelocity) .~ acc 
   Rotate objId ang -> do
     modify $ (object2d objId . objectRotation) .~ ang
-    tell [RotateResp objId ang]
+    tell [RotateResp (toTransportId objId) ang]
   RunSimulation -> do
     gw <- get
     ngw <-  (imapMOf (avatars <. avatarObject) moveByVelocity gw >>= imapMOf (obstacles <. obstacleObject) moveByVelocity)
