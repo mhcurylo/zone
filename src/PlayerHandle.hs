@@ -20,9 +20,9 @@ import           Control.Concurrent         (forkIO)
 import           ClientActions
 ----------------------------------------------------------------------------------
 
-data Monad m => PlayerHandle m = MkPlayer {
-    playerGet  :: m [ActionReq]
-  , playerSend :: [ActionResp] -> m ()
+data PlayerHandle = MkPlayer {
+    playerGet  :: IO [ActionReq]
+  , playerSend :: [ActionResp] -> IO ()
 }
 
 type MVReq = MVar [ActionReq]
@@ -40,7 +40,7 @@ getBatch = flip MV.modifyMVar $ (\a -> return ([], a))
 sendBatch :: MVResp -> [ActionResp] -> IO ()
 sendBatch = MV.putMVar 
 
-websocketPlayer :: WS.Connection -> IO (PlayerHandle IO)
+websocketPlayer :: WS.Connection -> IO PlayerHandle
 websocketPlayer conn = do
   mvReq <- newMVReq
   mvResp <- newMVResp
@@ -54,11 +54,8 @@ websocketPlayer conn = do
     WS.sendTextData conn cont
   return $ MkPlayer (getBatch mvReq) (sendBatch mvResp)
 
-simplePlayer :: Monad m => [ActionReq] -> PlayerHandle m
-simplePlayer arr = MkPlayer (return arr) (\_ -> return ())
-
-getPlayerActions :: Monad m => PlayerHandle m -> m [ActionReq]
+getPlayerActions :: PlayerHandle -> IO [ActionReq]
 getPlayerActions = playerGet
 
-sendPlayerActions :: Monad m => PlayerHandle m -> [ActionResp] -> m ()
+sendPlayerActions :: PlayerHandle -> [ActionResp] -> IO ()
 sendPlayerActions = playerSend

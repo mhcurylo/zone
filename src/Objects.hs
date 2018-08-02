@@ -2,10 +2,10 @@
 module Objects where
 
 --------------------------------------------------------------------------------
-import           Data.Text           (Text)
-import qualified Data.Text           as T
 import           Control.Arrow       (first, (***))
 import           Control.Lens        hiding ((.=)) 
+import           Data.Text           (Text)
+import qualified Data.Text           as T
 import           Data.HashMap.Strict (HashMap) 
 import qualified Data.HashMap.Strict as HM
 import           Data.Aeson        

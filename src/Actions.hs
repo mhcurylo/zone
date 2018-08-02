@@ -24,6 +24,10 @@ data Action m where
   Rotate          :: ObjectId a -> Angle -> Action ()
   RunSimulation   :: Action ()
 
+-- Constructor for export
+actAsAvatar :: ObjectId Avatar -> ActionReq -> Action ()
+actAsAvatar = AvatarAct
+ 
 -- Sending game actions to freer monad
 
 avatarAct :: Member Action effs => ObjectId Avatar -> ActionReq -> Eff effs ()
