@@ -10,9 +10,10 @@ import           Control.Monad.Freer.Writer
 import           Control.Monad              (forever)
 import           Control.Concurrent.MVar    (MVar)
 import           Control.Concurrent.MVar    as MV 
-import           Control.Concurrent         (forkIO)
+import           Control.Concurrent         (forkIO, threadDelay)
 import           Data.HashMap.Strict        (HashMap) 
 import qualified Data.HashMap.Strict        as HM
+import           Data.Time.Clock.System     (SystemTime(..), getSystemTime)
 ----------------------------------------------------------------------------------
 import           Objects
 import           Actions
@@ -35,7 +36,7 @@ makeLenses ''GamePlay
 
 data GameAction m where
   GetGamePlay       :: GameAction GamePlay
-  GetActions        :: PlayerHandle -> GameAction [Action ()] 
+  GetActions        :: PlayerHandle -> GameAction [ActionReq] 
   SendActions       :: PlayerHandle -> [ActionResp] -> GameAction ()
   RunGame           :: [Action ()] -> GameWorld -> GameAction ([ActionResp], GameWorld)
   SaveGamePlay      :: GamePlay -> GameAction () 
@@ -44,7 +45,7 @@ data GameAction m where
 
 -- Sending game actions to freer monad
 
-getGamePlay :: Member GameAction effs => Eff effs GamePlay 
+getGamePlay :: Member GameAction effs => Eff effs GamePlay
 getGamePlay = send GetGamePlay
 
 runGame :: Member GameAction effs => [Action ()] -> GameWorld -> Eff effs ([ActionResp], GameWorld)
@@ -53,7 +54,7 @@ runGame acts = send . RunGame acts
 saveGamePlay :: Member GameAction effs => GamePlay -> Eff effs () 
 saveGamePlay = send . SaveGamePlay
 
-getActions :: Member GameAction effs => PlayerHandle  -> Eff effs [Action ()] 
+getActions :: Member GameAction effs => PlayerHandle  -> Eff effs [ActionReq] 
 getActions = send . GetActions
 
 sendActions  :: Member GameAction effs => PlayerHandle -> [ActionResp] -> Eff effs ()
@@ -86,8 +87,18 @@ gameTurn = do
 
 -- Interpretation for IO 
 
--- interpretGameActionIO :: MVar (GamePlay IO) -> Eff '[GameAction IO, State GamePlay, IO] a -> IO a  
--- interpretGameActionIO gamePlayMV = runM . interpretM (\case
---   Wait              ->  return ())
+systemTimeToMil :: SystemTime -> Int
+systemTimeToMil (MkSystemTime s ns) = fromIntegral $ (s `mod` 10000) * 1000000 + (fromIntegral ns) `div` 1000
 
+interpretGameActionIO :: MVar GamePlay -> Eff '[GameAction, IO] a -> IO a  
+interpretGameActionIO gamePlayMV = runM . interpretM (\case
+  GetGamePlay                 -> MV.takeMVar gamePlayMV 
+  (GetActions pHandle)        -> getPlayerActions pHandle
+  (SendActions pHandle acts)  -> sendPlayerActions pHandle acts
+  (RunGame acts gameW)        -> return $ runActions acts gameW
+  (SaveGamePlay gameP)        -> MV.putMVar gamePlayMV gameP
+  GetTime                     -> systemTimeToMil <$> getSystemTime 
+  (Wait  t)                   -> threadDelay t)
 
+runGameLoop :: MVar GamePlay -> IO ()
+runGameLoop = forever . (flip interpretGameActionIO) gameTurn 

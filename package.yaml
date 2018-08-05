@@ -66,6 +66,7 @@ library:
   source-dirs: src
   dependencies:
     - text
+    - time
     - websockets
     - mtl
     - network

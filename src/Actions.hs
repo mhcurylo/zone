@@ -75,7 +75,7 @@ interpretAction = interpret (\case
 
 -- Function to run a sequence of actions in game and recalculate the simulation
 
-runGameActions :: [Action ()] -> GameWorld -> ([ActionResp], GameWorld)
-runGameActions actions world = first snd
-                               $ run . runState world . runWriter 
-                               $ traverse interpretAction (map send $ actions ++ [RunSimulation])
+runActions :: [Action ()] -> GameWorld -> ([ActionResp], GameWorld)
+runActions actions world = first snd
+                         $ run . runState world . runWriter 
+                         $ traverse interpretAction (map send $ actions ++ [RunSimulation])
