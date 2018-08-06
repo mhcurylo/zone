@@ -1,5 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Game where
+module Game (
+   GamePlay (..)
+ , runGameLoop  
+ , MVGamePlay 
+ ) where
 
 --------------------------------------------------------------------------------
 import           Control.Lens       
@@ -18,7 +22,7 @@ import           Data.Time.Clock.System     (SystemTime(..), getSystemTime)
 import           Objects
 import           Actions
 import           ClientActions
-import           PlayerHandle
+import           PlayerHandle 
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------
@@ -33,6 +37,11 @@ data GamePlay = MkGamePlay {
 }
 
 makeLenses ''GamePlay
+
+type MVGamePlay = MVar GamePlay
+
+newGamePlay :: PlayerHandle -> IO MVGamePlay
+newGamePlay pHandle = MV.newMVar $ MkGamePlay (HM.singleton 0 pHandle) gameWorld  
 
 data GameAction m where
   GetGamePlay       :: GameAction GamePlay
@@ -66,14 +75,18 @@ getTime = send GetTime
 wait  :: Member GameAction effs => Int -> Eff effs ()
 wait = send . Wait
 
--- Implementation of the Game Loop
-
 getAvatarActions :: Member GameAction effs => PlayerHandles -> Eff effs [Action ()]
-getAvatarActions = undefined 
+getAvatarActions = undefined
+--getAvatarActions = HM.traverseWithKey (\k v -> do
+--   acts <- getActions v
+--   actAsAvatar k acts)
 
 broadcastChanges :: Member GameAction effs => PlayerHandles -> [ActionResp] -> Eff effs ()
 broadcastChanges = undefined 
 
+
+-- Implementation of the Game Loop
+--
 gameTurn :: Member GameAction effs => Eff effs ()
 gameTurn = do
   st <- getTime
@@ -90,7 +103,7 @@ gameTurn = do
 systemTimeToMil :: SystemTime -> Int
 systemTimeToMil (MkSystemTime s ns) = fromIntegral $ (s `mod` 10000) * 1000000 + (fromIntegral ns) `div` 1000
 
-interpretGameActionIO :: MVar GamePlay -> Eff '[GameAction, IO] a -> IO a  
+interpretGameActionIO :: MVGamePlay -> Eff '[GameAction, IO] a -> IO a  
 interpretGameActionIO gamePlayMV = runM . interpretM (\case
   GetGamePlay                 -> MV.takeMVar gamePlayMV 
   (GetActions pHandle)        -> getPlayerActions pHandle
@@ -100,5 +113,5 @@ interpretGameActionIO gamePlayMV = runM . interpretM (\case
   GetTime                     -> systemTimeToMil <$> getSystemTime 
   (Wait  t)                   -> threadDelay t)
 
-runGameLoop :: MVar GamePlay -> IO ()
+runGameLoop :: MVGamePlay -> IO ()
 runGameLoop = forever . (flip interpretGameActionIO) gameTurn 

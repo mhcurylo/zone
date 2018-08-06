@@ -97,3 +97,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - zone
+    - tasty  
+    - tasty-hspec
+    - tasty-quickcheck  
+    - tasty-smallcheck  
+    - tasty-discover  

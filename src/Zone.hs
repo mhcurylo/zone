@@ -12,12 +12,12 @@ import           Data.Text           (Text)
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import qualified Network.WebSockets  as WS
-
+----------------------------------------------------------------------------------
+import Game
 
 ----------------------------------------------------------------------------------
-
-boo :: IO ()
-boo = T.putStrLn "BYE BYE"
+-- Main server loop
+----------------------------------------------------------------------------------
 
 app :: WS.ServerApp
 app pending = do
@@ -25,11 +25,7 @@ app pending = do
   WS.forkPingThread conn 30
   msg <- WS.receiveData conn
   T.putStrLn msg
-  sendText conn "Hello"
-  flip finally boo $ forever $ do
-    umsg <- readText conn
-    T.putStrLn umsg
-    sendText conn umsg
+  sendText conn "Hello, get READY 4 GAME"
 
 readText :: WS.Connection -> IO Text
 readText = WS.receiveData

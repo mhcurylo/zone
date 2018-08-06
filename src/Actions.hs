@@ -25,8 +25,8 @@ data Action m where
   RunSimulation   :: Action ()
 
 -- Constructor for export
-actAsAvatar :: ObjectId Avatar -> ActionReq -> Action ()
-actAsAvatar = AvatarAct
+actAsAvatar :: Int -> ActionReq -> Action ()
+actAsAvatar num = AvatarAct (AvatarId num)
  
 -- Sending game actions to freer monad
 
