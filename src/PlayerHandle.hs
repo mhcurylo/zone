@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 module PlayerHandle (
   PlayerHandle,
   websocketPlayer,
@@ -15,6 +14,8 @@ import           Control.Monad              (forever)
 import qualified Network.WebSockets         as WS
 import           Control.Concurrent.MVar    (MVar)
 import           Control.Concurrent.MVar    as MV 
+import           Control.Concurrent.Chan    (Chan)
+import           Control.Concurrent.Chan    as CH 
 import           Control.Concurrent         (forkIO)
 ----------------------------------------------------------------------------------
 import           ClientActions
@@ -26,33 +27,33 @@ data PlayerHandle = MkPlayer {
 }
 
 type MVReq = MVar [ActionReq]
-type MVResp = MVar [ActionResp]
+type CHResp = Chan [ActionResp]
 
 newMVReq :: IO MVReq
 newMVReq = MV.newMVar []
 
-newMVResp :: IO MVResp
-newMVResp = MV.newEmptyMVar 
+newCHResp :: IO CHResp
+newCHResp = CH.newChan 
 
 getBatch :: MVReq -> IO [ActionReq]
 getBatch = flip MV.modifyMVar $ (\a -> return ([], a))
 
-sendBatch :: MVResp -> [ActionResp] -> IO ()
-sendBatch = MV.putMVar 
+sendBatch :: CHResp -> [ActionResp] -> IO ()
+sendBatch = CH.writeChan 
 
 websocketPlayer :: WS.Connection -> IO PlayerHandle
 websocketPlayer conn = do
   mvReq <- newMVReq
-  mvResp <- newMVResp
+  chResp <- newCHResp
   forkIO $ forever $ do 
     maybeMsg <- WS.receiveData conn  
     case decode maybeMsg of  
       Nothing -> return ()
       (Just msg) -> MV.modifyMVar_ mvReq (return . (msg :))
   forkIO $ forever $ do 
-    cont <- encode <$> MV.takeMVar mvResp
+    cont <- encode <$> CH.readChan chResp
     WS.sendTextData conn cont
-  return $ MkPlayer (getBatch mvReq) (sendBatch mvResp)
+  return $ MkPlayer (getBatch mvReq) (sendBatch chResp)
 
 getPlayerActions :: PlayerHandle -> IO [ActionReq]
 getPlayerActions = playerGet

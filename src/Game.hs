@@ -1,8 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Game (
-   GamePlay (..)
+   GamePlay 
+ , newGamePlay
  , runGameLoop  
- , MVGamePlay 
+ , updatePlayerGameWorldIO  
  ) where
 
 --------------------------------------------------------------------------------
@@ -18,6 +19,7 @@ import           Control.Concurrent         (forkIO, threadDelay)
 import           Data.HashMap.Strict        (HashMap) 
 import qualified Data.HashMap.Strict        as HM
 import           Data.Time.Clock.System     (SystemTime(..), getSystemTime)
+import           Data.Foldable              (traverse_) 
 ----------------------------------------------------------------------------------
 import           Objects
 import           Actions
@@ -46,7 +48,7 @@ newGamePlay pHandle = MV.newMVar $ MkGamePlay (HM.singleton 0 pHandle) gameWorld
 data GameAction m where
   GetGamePlay       :: GameAction GamePlay
   GetActions        :: PlayerHandle -> GameAction [ActionReq] 
-  SendActions       :: PlayerHandle -> [ActionResp] -> GameAction ()
+  SendActions       :: [ActionResp] -> PlayerHandle -> GameAction ()
   RunGame           :: [Action ()] -> GameWorld -> GameAction ([ActionResp], GameWorld)
   SaveGamePlay      :: GamePlay -> GameAction () 
   GetTime           :: GameAction Int
@@ -66,8 +68,8 @@ saveGamePlay = send . SaveGamePlay
 getActions :: Member GameAction effs => PlayerHandle  -> Eff effs [ActionReq] 
 getActions = send . GetActions
 
-sendActions  :: Member GameAction effs => PlayerHandle -> [ActionResp] -> Eff effs ()
-sendActions phandle = send . SendActions phandle
+sendActions  :: Member GameAction effs => [ActionResp] -> PlayerHandle -> Eff effs ()
+sendActions acts = send . SendActions acts
  
 getTime  :: Member GameAction effs => Eff effs Int
 getTime = send GetTime
@@ -76,27 +78,34 @@ wait  :: Member GameAction effs => Int -> Eff effs ()
 wait = send . Wait
 
 getAvatarActions :: Member GameAction effs => PlayerHandles -> Eff effs [Action ()]
-getAvatarActions = undefined
---getAvatarActions = HM.traverseWithKey (\k v -> do
---   acts <- getActions v
---   actAsAvatar k acts)
+getAvatarActions pHandles = HM.foldl' (++) [] <$> ((flip HM.traverseWithKey $ pHandles) $ \k v -> do
+   acts <- getActions v
+   return $ map (actAsAvatar k) acts)
 
-broadcastChanges :: Member GameAction effs => PlayerHandles -> [ActionResp] -> Eff effs ()
-broadcastChanges = undefined 
+broadcastChanges :: Member GameAction effs => [ActionResp] -> PlayerHandles ->Eff effs ()
+broadcastChanges acts = traverse_ (sendActions acts)  
 
+waitTillEndOfFrame :: Member GameAction effs => Int -> Int -> Eff effs ()
+waitTillEndOfFrame startTime finishTime = wait $ 16000 - (finishTime - startTime)
 
 -- Implementation of the Game Loop
---
+
 gameTurn :: Member GameAction effs => Eff effs ()
 gameTurn = do
   st <- getTime
   (MkGamePlay pHandles gameW) <- getGamePlay
   acts <- getAvatarActions pHandles 
   (resp, newGameW) <- runGame acts gameW 
-  broadcastChanges pHandles resp
+  broadcastChanges resp pHandles
   saveGamePlay (MkGamePlay pHandles newGameW) 
   ft <- getTime
-  wait (st - ft)
+  waitTillEndOfFrame st ft
+
+updatePlayerGameWorld :: Member GameAction effs => Eff effs ()
+updatePlayerGameWorld = do
+  gp@(MkGamePlay pHandles gameW) <- getGamePlay
+  broadcastChanges [updateWorld gameW] pHandles
+  saveGamePlay gp
 
 -- Interpretation for IO 
 
@@ -107,11 +116,14 @@ interpretGameActionIO :: MVGamePlay -> Eff '[GameAction, IO] a -> IO a
 interpretGameActionIO gamePlayMV = runM . interpretM (\case
   GetGamePlay                 -> MV.takeMVar gamePlayMV 
   (GetActions pHandle)        -> getPlayerActions pHandle
-  (SendActions pHandle acts)  -> sendPlayerActions pHandle acts
+  (SendActions pHandle acts)  -> sendPlayerActions acts pHandle
   (RunGame acts gameW)        -> return $ runActions acts gameW
   (SaveGamePlay gameP)        -> MV.putMVar gamePlayMV gameP
   GetTime                     -> systemTimeToMil <$> getSystemTime 
   (Wait  t)                   -> threadDelay t)
+
+updatePlayerGameWorldIO :: MVGamePlay -> IO ()
+updatePlayerGameWorldIO = (flip interpretGameActionIO) updatePlayerGameWorld
 
 runGameLoop :: MVGamePlay -> IO ()
 runGameLoop = forever . (flip interpretGameActionIO) gameTurn 

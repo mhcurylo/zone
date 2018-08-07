@@ -20,15 +20,9 @@ data ObjectId a where
   AvatarId :: Int -> ObjectId Avatar
   ObstacleId :: Int -> ObjectId Obstacle
 
-instance ToJSON (ObjectId a) where
-  toJSON (AvatarId i) = object
-    [ "id" .= toJSON ("AvatarId" :: Text)
-    , "num" .= toJSON i
-    ]
-  toJSON (ObstacleId i) = object
-    [ "id" .= toJSON ("ObstacleId" :: Text)
-    , "num" .= toJSON i
-    ]
+instance Show (ObjectId a) where
+  show (AvatarId i) = "AvatarId " ++ show i
+  show (ObstacleId i) = "ObstacleId " ++ show i
 
 data TransportId = TAvatarId (ObjectId Avatar) 
                  | TObstacleId (ObjectId Obstacle)
@@ -39,26 +33,14 @@ toTransportId oid@(ObstacleId _) = TObstacleId oid
 
 instance ToJSON TransportId where
   toJSON (TAvatarId (AvatarId i)) = object
-    [ "id" .= toJSON ("AvatarId" :: Text)
+    [ "type" .= toJSON ("AvatarId" :: Text)
     , "num" .= toJSON i
     ]
   toJSON (TObstacleId (ObstacleId i)) = object
-    [ "id" .= toJSON ("ObstacleId" :: Text)
+    [ "type" .= toJSON ("ObstacleId" :: Text)
     , "num" .= toJSON i
     ]
 
-instance FromJSON TransportId where
-  parseJSON = withObject "ObjectId" $ \o -> do
-    id_ <- o .: "id"
-    num_ <- o .: "num"
-    case (id_ :: Text) of 
-      "AvatarId" -> return $ TAvatarId (AvatarId num_)
-      "ObstacleId" -> return $TObstacleId (ObstacleId num_)
-      _ -> fail "Not a TransportId!"
-
-instance Show (ObjectId a) where
-  show (AvatarId i) = "AvatarId " ++ show i
-  show (ObstacleId i) = "ObstacleId " ++ show i
 ----------------------------------------------------------------------------------
 -- Objects
 ----------------------------------------------------------------------------------
@@ -78,7 +60,6 @@ add (MkPoint x1 y1) (MkPoint x2 y2) = MkPoint (x1 + x2) (y1 + y2)
 data Shape = MkSquare Double
            | MkRectangle Double Double
            | MkCircle Double deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
-
 
 -- Object for physic implementation
 
@@ -110,14 +91,6 @@ data GameWorld = MkGameWorld {
     _gameAvatars :: Avatars
   , _gameObstacles :: Obstacles
 } deriving (Show, Eq, Ord, Generic, ToJSON, FromJSON)
-
---instance FromJSON GameWorld where
---  parseJSON o = do
---    avatars <- obj .: "avatars"
---    obstacles <- obj .: "obstacles"
---    avatars' <- Map.fromList $ map ((read :: (Text -> Int)) *** decode) $ HM.toList avatars
---    obstacles' <- Map.fromList $ map ((read :: (Text -> Int)) *** decode) $ HM.toList obstacles
---    return $ MkGameWorld avatars obstacles
 
 makeLenses ''Angle
 makeLenses ''Point

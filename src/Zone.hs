@@ -14,10 +14,18 @@ import qualified Data.Text.IO        as T
 import qualified Network.WebSockets  as WS
 ----------------------------------------------------------------------------------
 import Game
-
+import Objects
+import PlayerHandle
 ----------------------------------------------------------------------------------
 -- Main server loop
 ----------------------------------------------------------------------------------
+
+singlePlayerGame :: WS.Connection -> IO ()
+singlePlayerGame conn = do
+  pHandle   <- websocketPlayer conn
+  mvGPlay   <- newGamePlay pHandle
+  updatePlayerGameWorldIO mvGPlay
+  runGameLoop mvGPlay
 
 app :: WS.ServerApp
 app pending = do
@@ -25,7 +33,8 @@ app pending = do
   WS.forkPingThread conn 30
   msg <- WS.receiveData conn
   T.putStrLn msg
-  sendText conn "Hello, get READY 4 GAME"
+  sendText conn "Hello, Game"
+  singlePlayerGame conn
 
 readText :: WS.Connection -> IO Text
 readText = WS.receiveData

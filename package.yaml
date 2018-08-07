@@ -86,6 +86,22 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - zone
+  zone-testclient-exe:
+    main:                Main.hs
+    source-dirs:         testclient
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - text
+    - time
+    - websockets
+    - network
+    - aeson  
+    - lens  
+    - mtl
+    - zone
 
 tests:
   zone-test:
