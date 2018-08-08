@@ -41,6 +41,16 @@ instance ToJSON TransportId where
     , "num" .= toJSON i
     ]
 
+instance FromJSON TransportId where
+  parseJSON = withObject "ObjectId" $ \o -> do
+    type_ <- o .: "type"
+    num_ <- o .: "num"
+    if type_ == ("AvatarId" :: Text) then
+      return $ TAvatarId (AvatarId num_)
+    else if type_ == ("ObstacleId" :: Text) then
+      return $ TObstacleId (ObstacleId num_)
+    else fail ("Bad TransportId type: \"" <> show type_ <> "\"")
+
 ----------------------------------------------------------------------------------
 -- Objects
 ----------------------------------------------------------------------------------
