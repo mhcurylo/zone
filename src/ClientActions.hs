@@ -1,11 +1,12 @@
 module ClientActions where
 
 --------------------------------------------------------------------------------
-import           GHC.Generics 
-import           Data.Aeson 
+import           GHC.Generics (Generic)
+import           Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON, genericParseJSON, 
+                             genericToJSON, Options, defaultOptions, fieldLabelModifier)
 import           Data.Char (toLower)
 ----------------------------------------------------------------------------------
-import           Objects
+import           Objects (GameWorld, TransportId, Point, Angle)
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------
