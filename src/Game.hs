@@ -9,13 +9,10 @@ module Game (
 --------------------------------------------------------------------------------
 import           Control.Lens       
 import           Control.Monad.Freer
-import           Control.Monad.Freer.Error
-import           Control.Monad.Freer.State
-import           Control.Monad.Freer.Writer
 import           Control.Monad              (forever)
 import           Control.Concurrent.MVar    (MVar)
 import           Control.Concurrent.MVar    as MV 
-import           Control.Concurrent         (forkIO, threadDelay)
+import           Control.Concurrent         (threadDelay)
 import           Data.HashMap.Strict        (HashMap) 
 import qualified Data.HashMap.Strict        as HM
 import           Data.Time.Clock.System     (SystemTime(..), getSystemTime)
