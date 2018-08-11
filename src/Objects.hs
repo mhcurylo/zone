@@ -1,12 +1,24 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Objects where
+module Objects (
+    ObjectId(..)
+  , Angle, a
+  , Point, x, y
+  , point
+  , add
+  , Avatar
+  , Obstacle
+  , Object2d, objectCenter, objectShape, objectRotation, objectVelocity
+  , GameWorld, avatars, obstacles, object2d
+  , avatarObject
+  , obstacleObject
+  , gameObject
+  , pointZero
+  , gameWorld
+) where
 
 --------------------------------------------------------------------------------
-import           Control.Arrow       (first, (***))
 import           Control.Lens        hiding ((.=)) 
 import           Data.Char           (toLower)
-import           Data.Text           (Text)
-import qualified Data.Text           as T
 import           Data.HashMap.Strict (HashMap) 
 import qualified Data.HashMap.Strict as HM
 import           Data.Aeson          (FromJSON, ToJSON, parseJSON, toJSON, genericParseJSON, 
@@ -53,6 +65,8 @@ instance FromJSON Point where
 instance ToJSON Point where
   toJSON = genericToJSON simpleOptions
 
+point :: Double -> Double -> Point
+point = MkPoint
 
 add :: Point -> Point -> Point
 add (MkPoint x1 y1) (MkPoint x2 y2) = MkPoint (x1 + x2) (y1 + y2)
@@ -141,8 +155,8 @@ gameObject (AvatarId n) = gameAvatars . at n
 gameObject (ObstacleId n) = gameObstacles . at n
 
 object2d :: ObjectId a -> Traversal' GameWorld Object2d
-object2d a@(AvatarId n) = gameObject a . _Just . avatarObject
-object2d o@(ObstacleId n) = gameObject o . _Just . obstacleObject
+object2d aid@(AvatarId _) = gameObject aid . _Just . avatarObject
+object2d oid@(ObstacleId _) = gameObject oid . _Just . obstacleObject
 
 avatars :: (Indexable (ObjectId Avatar) p, Applicative f) => p Avatar (f Avatar) -> GameWorld -> f GameWorld
 avatars = gameAvatars .> reindexed AvatarId itraversed 
@@ -152,15 +166,20 @@ obstacles = gameObstacles .> reindexed ObstacleId itraversed
 
 -- Creating some instances
 
+pointZero :: Point
 pointZero = MkPoint 0 0
 
 basicObstacles :: Obstacles
 basicObstacles = HM.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5) (MkAngle 90) pointZero
 
+newAvatarPosition :: Point
 newAvatarPosition = pointZero
+
+avatarShape :: Shape
 avatarShape = MkCircle 1
 
 startingAvatar :: Avatars
 startingAvatar = HM.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape (MkAngle 0) pointZero)
 
+gameWorld :: GameWorld
 gameWorld = MkGameWorld startingAvatar basicObstacles

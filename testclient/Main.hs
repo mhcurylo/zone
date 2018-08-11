@@ -29,7 +29,7 @@ app :: WS.ClientApp ()
 app conn = do
     putStrLn "Connected!"
     WS.sendTextData conn ("Boowie!" :: Text)
-    WS.sendTextData conn $ encode $ AccelerateReq (MkPoint 1.0 1.0)
+    WS.sendTextData conn $ encode $ AccelerateReq (point 1.0 1.0)
     forever $ do
         st <- liftIO $ getSystemTime
         msg <- (WS.receiveData conn :: IO Text)

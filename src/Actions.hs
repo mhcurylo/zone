@@ -11,7 +11,7 @@ import           Control.Monad.Freer
 import           Control.Monad.Freer.State   (get, put, modify, runState, State)
 import           Control.Monad.Freer.Writer  (tell, runWriter, Writer)
 ----------------------------------------------------------------------------------
-import           Objects
+import           Objects 
 import           ClientActions               (ActionReq(..), ActionResp, moveResp,  
                                               rotateResp)
 ----------------------------------------------------------------------------------
