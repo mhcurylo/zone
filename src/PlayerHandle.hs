@@ -1,14 +1,12 @@
 module PlayerHandle (
-  PlayerHandle,
-  websocketPlayer,
-  getPlayerActions,
-  sendPlayerActions
-  ) where
+    PlayerHandle
+  , websocketPlayer
+  , getPlayerActions
+  , sendPlayerActions
+) where
 
 
 --------------------------------------------------------------------------------
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
 import           Data.Aeson                 (encode, decode)
 import           Control.Monad              (forever)
 import qualified Network.WebSockets         as WS
@@ -18,7 +16,7 @@ import           Control.Concurrent.Chan    (Chan)
 import           Control.Concurrent.Chan    as CH 
 import           Control.Concurrent         (forkIO)
 ----------------------------------------------------------------------------------
-import           ClientActions
+import           ClientActions              (ActionResp, ActionReq) 
 ----------------------------------------------------------------------------------
 
 data PlayerHandle = MkPlayer {
@@ -36,7 +34,7 @@ newCHResp :: IO CHResp
 newCHResp = CH.newChan 
 
 getBatch :: MVReq -> IO [ActionReq]
-getBatch = flip MV.modifyMVar $ (\a -> return ([], a))
+getBatch = flip MV.modifyMVar (\a -> return ([], a))
 
 sendBatch :: CHResp -> [ActionResp] -> IO ()
 sendBatch = CH.writeChan 

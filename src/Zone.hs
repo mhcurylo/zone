@@ -1,6 +1,6 @@
-module Zone
-    ( someFunc
-        ) where
+module Zone ( 
+   someFunc
+) where
 
 --------------------------------------------------------------------------------
 import           Control.Concurrent  (forkIO)

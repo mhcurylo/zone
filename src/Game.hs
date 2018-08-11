@@ -1,13 +1,11 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Game (
-   GamePlay 
- , newGamePlay
- , runGameLoop  
- , updatePlayerGameWorldIO  
- ) where
+    GamePlay 
+  , newGamePlay
+  , runGameLoop  
+  , updatePlayerGameWorldIO  
+) where
 
 --------------------------------------------------------------------------------
-import           Control.Lens       
 import           Control.Monad.Freer
 import           Control.Monad              (forever)
 import           Control.Concurrent.MVar    (MVar)
@@ -34,8 +32,6 @@ data GamePlay = MkGamePlay {
      _gamePlayPlayerHandles :: PlayerHandles 
   ,  _gamePlayWorld :: GameWorld  
 }
-
-makeLenses ''GamePlay
 
 type MVGamePlay = MVar GamePlay
 
@@ -75,9 +71,9 @@ wait  :: Member GameAction effs => Int -> Eff effs ()
 wait = send . Wait
 
 getAvatarActions :: Member GameAction effs => PlayerHandles -> Eff effs [Action ()]
-getAvatarActions pHandles = HM.foldl' (++) [] <$> ((flip HM.traverseWithKey $ pHandles) $ \k v -> do
+getAvatarActions pHandles = HM.foldl' (++) [] <$> HM.traverseWithKey (\k v -> do
    acts <- getActions v
-   return $ map (actAsAvatar k) acts)
+   return $ map (actAsAvatar k) acts) pHandles
 
 broadcastChanges :: Member GameAction effs => [ActionResp] -> PlayerHandles ->Eff effs ()
 broadcastChanges acts = traverse_ (sendActions acts)  
@@ -107,7 +103,7 @@ updatePlayerGameWorld = do
 -- Interpretation for IO 
 
 systemTimeToMil :: SystemTime -> Int
-systemTimeToMil (MkSystemTime s ns) = fromIntegral $ (s `mod` 10000) * 1000000 + (fromIntegral ns) `div` 1000
+systemTimeToMil (MkSystemTime s ns) = fromIntegral (s `mod` 10000) * 1000000 + fromIntegral ns `div` 1000
 
 interpretGameActionIO :: MVGamePlay -> Eff '[GameAction, IO] a -> IO a  
 interpretGameActionIO gamePlayMV = runM . interpretM (\case
@@ -120,7 +116,7 @@ interpretGameActionIO gamePlayMV = runM . interpretM (\case
   (Wait  t)                   -> threadDelay t)
 
 updatePlayerGameWorldIO :: MVGamePlay -> IO ()
-updatePlayerGameWorldIO = (flip interpretGameActionIO) updatePlayerGameWorld
+updatePlayerGameWorldIO = flip interpretGameActionIO updatePlayerGameWorld
 
 runGameLoop :: MVGamePlay -> IO ()
-runGameLoop = forever . (flip interpretGameActionIO) gameTurn 
+runGameLoop = forever . flip interpretGameActionIO gameTurn 

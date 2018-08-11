@@ -1,15 +1,19 @@
-module Actions where
+module Actions (
+    Action
+  , actAsAvatar
+  , runActions
+) where
 
 --------------------------------------------------------------------------------
-import           Control.Arrow      (first)
-import           Control.Lens       
-import           Control.Monad.Freer
-import           Control.Monad.Freer.Error
-import           Control.Monad.Freer.State
-import           Control.Monad.Freer.Writer
+import           Control.Arrow               (first)
+import           Control.Lens                ((.~), (^.), (<.), imapMOf)
+import           Control.Monad.Freer         
+import           Control.Monad.Freer.State   (get, put, modify, runState, State)
+import           Control.Monad.Freer.Writer  (tell, runWriter, Writer)
 ----------------------------------------------------------------------------------
 import           Objects
-import           ClientActions
+import           ClientActions               (ActionReq(..), ActionResp, moveResp,  
+                                              rotateResp)
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------
@@ -30,8 +34,8 @@ actAsAvatar num = AvatarAct (AvatarId num)
  
 -- Sending game actions to freer monad
 
-avatarAct :: Member Action effs => ObjectId Avatar -> ActionReq -> Eff effs ()
-avatarAct avaId = send . AvatarAct avaId
+--avatarAct :: Member Action effs => ObjectId Avatar -> ActionReq -> Eff effs ()
+--avatarAct avaId = send . AvatarAct avaId
 
 accelerate :: Member Action effs => ObjectId a -> Point -> Eff effs ()
 accelerate objId = send . Accelerate objId 
@@ -55,7 +59,7 @@ moveByVelocity idx object = if vel == pointZero
   then pure object
   else do
     let npos = add pos vel
-    tell $ [MoveResp (toTransportId idx) npos]
+    tell [moveResp idx npos]
     return $ objectCenter .~ npos  $ object
   where
   pos = object ^. objectCenter
@@ -67,10 +71,10 @@ interpretAction = interpret (\case
   Accelerate objId acc -> modify $ (object2d objId . objectVelocity) .~ acc 
   Rotate objId ang -> do
     modify $ (object2d objId . objectRotation) .~ ang
-    tell [RotateResp (toTransportId objId) ang]
+    tell [rotateResp objId ang]
   RunSimulation -> do
     gw <- get
-    ngw <-  (imapMOf (avatars <. avatarObject) moveByVelocity gw >>= imapMOf (obstacles <. obstacleObject) moveByVelocity)
+    ngw <- imapMOf (avatars <. avatarObject) moveByVelocity gw >>= imapMOf (obstacles <. obstacleObject) moveByVelocity
     put ngw)
 
 -- Function to run a sequence of actions in game and recalculate the simulation
@@ -78,4 +82,5 @@ interpretAction = interpret (\case
 runActions :: [Action ()] -> GameWorld -> ([ActionResp], GameWorld)
 runActions actions world = first snd
                          $ run . runState world . runWriter 
-                         $ traverse interpretAction (map send $ actions ++ [RunSimulation])
+                         $ traverse interpretAction 
+                         $ map send actions ++ [runSimulation]

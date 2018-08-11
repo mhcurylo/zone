@@ -9,8 +9,9 @@ import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.HashMap.Strict (HashMap) 
 import qualified Data.HashMap.Strict as HM
-import           Data.Aeson        
-import           GHC.Generics
+import           Data.Aeson          (FromJSON, ToJSON, parseJSON, toJSON, genericParseJSON, 
+                                      genericToJSON, Options, defaultOptions, fieldLabelModifier)
+import           GHC.Generics        (Generic)
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------
@@ -23,33 +24,6 @@ data ObjectId a where
 instance Show (ObjectId a) where
   show (AvatarId i) = "AvatarId " ++ show i
   show (ObstacleId i) = "ObstacleId " ++ show i
-
-data TransportId = TAvatarId (ObjectId Avatar) 
-                 | TObstacleId (ObjectId Obstacle)
-
-toTransportId :: ObjectId a -> TransportId
-toTransportId aid@(AvatarId _) = TAvatarId aid
-toTransportId oid@(ObstacleId _) = TObstacleId oid
-
-instance ToJSON TransportId where
-  toJSON (TAvatarId (AvatarId i)) = object
-    [ "type" .= toJSON ("AvatarId" :: Text)
-    , "num" .= toJSON i
-    ]
-  toJSON (TObstacleId (ObstacleId i)) = object
-    [ "type" .= toJSON ("ObstacleId" :: Text)
-    , "num" .= toJSON i
-    ]
-
-instance FromJSON TransportId where
-  parseJSON = withObject "ObjectId" $ \o -> do
-    type_ <- o .: "type"
-    num_ <- o .: "num"
-    if type_ == ("AvatarId" :: Text) then
-      return $ TAvatarId (AvatarId num_)
-    else if type_ == ("ObstacleId" :: Text) then
-      return $ TObstacleId (ObstacleId num_)
-    else fail ("Bad TransportId type: \"" <> show type_ <> "\"")
 
 ----------------------------------------------------------------------------------
 -- Objects
