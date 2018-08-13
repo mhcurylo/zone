@@ -11,7 +11,11 @@ import           Control.Monad.Freer
 import           Control.Monad.Freer.State   (get, put, modify, runState, State)
 import           Control.Monad.Freer.Writer  (tell, runWriter, Writer)
 ----------------------------------------------------------------------------------
-import           Objects 
+import           Objects                     (ObjectId(..), Point, Angle, Avatar, 
+                                              Object2d, GameWorld, avatars, 
+                                              avatarObject, obstacles, obstacleObject,
+                                              object2d, objectVelocity, objectRotation,
+                                              objectCenter, add, pointZero)
 import           ClientActions               (ActionReq(..), ActionResp, moveResp,  
                                               rotateResp)
 ----------------------------------------------------------------------------------

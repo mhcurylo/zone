@@ -1,6 +1,10 @@
-module Main where
+module Main (
+    main
+) where
 
-import Zone
+----------------------------------------------------------------------------------
+import           Zone                (mainLoop)
+----------------------------------------------------------------------------------
 
 main :: IO ()
-main = someFunc
+main = mainLoop

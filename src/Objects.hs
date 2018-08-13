@@ -16,7 +16,7 @@ module Objects (
   , gameWorld
 ) where
 
---------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 import           Control.Lens        hiding ((.=)) 
 import           Data.Char           (toLower)
 import           Data.HashMap.Strict (HashMap) 

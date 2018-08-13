@@ -16,10 +16,10 @@ import qualified Data.HashMap.Strict        as HM
 import           Data.Time.Clock.System     (SystemTime(..), getSystemTime)
 import           Data.Foldable              (traverse_) 
 ----------------------------------------------------------------------------------
-import           Objects
-import           Actions
-import           ClientActions
-import           PlayerHandle 
+import           Objects                    (GameWorld, gameWorld)
+import           Actions                    (Action, actAsAvatar, runActions)
+import           ClientActions              (ActionReq, ActionResp, updateWorld)
+import           PlayerHandle               (PlayerHandle, getPlayerActions, sendPlayerActions)
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------
