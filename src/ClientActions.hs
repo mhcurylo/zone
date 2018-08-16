@@ -72,9 +72,9 @@ instance ToJSON ActionReq where
 actionRespOptions :: Options
 actionRespOptions = defaultOptions { fieldLabelModifier = map toLower . drop 6 } 
 
-data ActionResp = MoveResp      { mvRespId :: TransportId, mvRespPoint ::  Point }
-                | RotateResp    { roRespId :: TransportId, roRespAngle :: Angle }
-                | GameWorldResp { gwRespGameWorld :: GameWorld }
+data ActionResp = MoveResp TransportId Point
+                | RotateResp TransportId Angle
+                | GameWorldResp GameWorld
                deriving (Generic)
                
 instance FromJSON ActionResp where
