@@ -24,9 +24,6 @@ app :: WS.ServerApp
 app pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
-  msg <- readText conn
-  T.putStrLn msg
-  sendText conn "Hello, Game"
   singlePlayerGame conn
 
 readText :: WS.Connection -> IO Text
