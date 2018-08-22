@@ -170,13 +170,18 @@ pointZero :: Point
 pointZero = MkPoint 0 0
 
 basicObstacles :: Obstacles
-basicObstacles = HM.singleton 0 $ MkObstacle $ MkObject2d pointZero (MkSquare 5) (MkAngle 90) pointZero
+basicObstacles = 
+  HM.fromList
+    [ (0, MkObstacle $ MkObject2d (MkPoint  10  10) (MkSquare 50) (MkAngle  0) pointZero)
+    , (1, MkObstacle $ MkObject2d (MkPoint 100 100) (MkSquare 20) (MkAngle 90) pointZero)
+    , (2, MkObstacle $ MkObject2d (MkPoint 150  50) (MkSquare 20) (MkAngle 45) pointZero)
+    ]
 
 newAvatarPosition :: Point
-newAvatarPosition = pointZero
+newAvatarPosition = MkPoint 200 200
 
 avatarShape :: Shape
-avatarShape = MkCircle 1
+avatarShape = MkCircle 20
 
 startingAvatar :: Avatars
 startingAvatar = HM.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape (MkAngle 0) pointZero)
