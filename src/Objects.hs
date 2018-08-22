@@ -178,10 +178,10 @@ basicObstacles =
     ]
 
 newAvatarPosition :: Point
-newAvatarPosition = pointZero
+newAvatarPosition = MkPoint 200 200
 
 avatarShape :: Shape
-avatarShape = MkCircle 1
+avatarShape = MkCircle 20
 
 startingAvatar :: Avatars
 startingAvatar = HM.singleton 0 (MkAvatar $ MkObject2d newAvatarPosition avatarShape (MkAngle 0) pointZero)
