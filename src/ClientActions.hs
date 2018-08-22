@@ -24,33 +24,19 @@ import           Objects            (Obstacle, Avatar, ObjectId(..), GameWorld,
 
 -- TransportId instance for transport
 
-data TransportId = TAvatarId (ObjectId Avatar) 
-                 | TObstacleId (ObjectId Obstacle)
+data TransportId = TAvatarId Int
+                 | TObstacleId Int
+                deriving (Generic)
 
 toTransportId :: ObjectId a -> TransportId
-toTransportId aid@(AvatarId _) = TAvatarId aid
-toTransportId oid@(ObstacleId _) = TObstacleId oid
+toTransportId (AvatarId x) = TAvatarId x
+toTransportId (ObstacleId x) = TObstacleId x
 
 instance ToJSON TransportId where
-  toJSON (TAvatarId (AvatarId i)) = object
-    [ "type" .= toJSON ("AvatarId" :: Text)
-    , "num" .= toJSON i
-    ]
-  toJSON (TObstacleId (ObstacleId i)) = object
-    [ "type" .= toJSON ("ObstacleId" :: Text)
-    , "num" .= toJSON i
-    ]
+  toJSON = genericToJSON defaultOptions
 
 instance FromJSON TransportId where
-  parseJSON = withObject "ObjectId" $ \o -> do
-    type_ <- o .: "type"
-    num_ <- o .: "num"
-    if type_ == ("AvatarId" :: Text) then
-      return $ TAvatarId (AvatarId num_)
-    else if type_ == ("ObstacleId" :: Text) then
-      return $ TObstacleId (ObstacleId num_)
-    else fail ("Bad TransportId type: \"" <> show type_ <> "\"")
-
+  parseJSON = genericParseJSON defaultOptions
 
 -- Actions accepted from the Player / AI
 
