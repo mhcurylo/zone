@@ -7,15 +7,12 @@ module ClientActions (
 ) where
 
 --------------------------------------------------------------------------------
-import           Data.Aeson         ((.=), (.:), object, withObject, FromJSON, 
-                                     ToJSON, parseJSON, toJSON, genericParseJSON, 
+import           Data.Aeson         (FromJSON, ToJSON, parseJSON, toJSON, genericParseJSON, 
                                      genericToJSON, Options, defaultOptions, fieldLabelModifier)
 import           Data.Char          (toLower)
-import           Data.Text          (Text)
 import           GHC.Generics       (Generic)
 ----------------------------------------------------------------------------------
-import           Objects            (Obstacle, Avatar, ObjectId(..), GameWorld, 
-                                     Point, Angle)
+import           Objects            (ObjectId(..), GameWorld, Point, Angle)
 ----------------------------------------------------------------------------------
 
 ----------------------------------------------------------------------------------

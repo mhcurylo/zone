@@ -105,7 +105,7 @@ executables:
 
 tests:
   zone-test:
-    main:                Spec.hs
+    main:                Driver.hs
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -113,8 +113,12 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - zone
+    - generic-random  
+    - HUnit  
+    - QuickCheck  
+    - smallcheck  
     - tasty  
-    - tasty-hspec
+    - tasty-hunit
     - tasty-quickcheck  
     - tasty-smallcheck  
     - tasty-discover  

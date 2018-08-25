@@ -52,7 +52,7 @@ runSimulation = send RunSimulation
 
 -- For now just accept everything user throws at you
 
-interpretAvatarAction :: ObjectId Avatar -> ActionReq -> Eff '[Action, Writer [ActionResp], State GameWorld] ()
+interpretAvatarAction :: Member Action effs => ObjectId Avatar -> ActionReq -> Eff effs ()
 interpretAvatarAction avaId (AccelerateReq p) = accelerate avaId p
 interpretAvatarAction avaId (RotateReq r) = rotate avaId r
 

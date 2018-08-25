@@ -3,6 +3,7 @@ module Objects (
     ObjectId(..)
   , Angle, a
   , Point, x, y
+  , Shape(..)
   , point
   , add
   , Avatar
@@ -81,10 +82,10 @@ object2dOptions :: Options
 object2dOptions = defaultOptions { fieldLabelModifier = map toLower . drop 7 }
 
 data Object2d = MkObject2d {
-    _objectCenter :: Point
-  , _objectShape :: Shape
-  , _objectRotation :: Angle
-  , _objectVelocity :: Point
+    _objectCenter :: !Point
+  , _objectShape :: !Shape
+  , _objectRotation :: !Angle
+  , _objectVelocity :: !Point
 } deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON Object2d where
@@ -133,8 +134,8 @@ gameWorldOptions :: Options
 gameWorldOptions = defaultOptions { fieldLabelModifier = map toLower . drop 5 }
 
 data GameWorld = MkGameWorld {
-    _gameAvatars :: Avatars
-  , _gameObstacles :: Obstacles
+    _gameAvatars :: !Avatars
+  , _gameObstacles :: !Obstacles
 } deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON GameWorld where
