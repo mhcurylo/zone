@@ -112,6 +112,10 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - aeson  
+    - containers
+    - unordered-containers
+    - hashable  
     - zone
     - generic-random  
     - HUnit  
